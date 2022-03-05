@@ -11,6 +11,7 @@ Opis podstawowych funkcjonalości:
 - anominizacja danych na backendzie po upływie 10 dniu po wykonaniu.
 - pokazywać też rzeczy które zostały wykonane jak w poprzednim pkt do 10 dni po wykonaniu
 - obsługa wykonania zadania/flaga która będzie rozpoznywana dla danego zadania
+  
 Opis rozszerzonych funkcjonalności:
 - OCR (nie wiadomo czy będzie czas na implementacje)
 - Własny projekt bota dla app
