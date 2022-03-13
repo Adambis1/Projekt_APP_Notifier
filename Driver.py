@@ -1,40 +1,47 @@
-#pip3 install Flask==0.12.2
+#pip3 install Flask
 #pip3 install pymessenger==0.0.7.0
   
 #Python libraries that we need to import for our bot
 import random
+import os, sys
+import json
 from flask import Flask, request
 from pymessenger.bot import Bot
 
 app = Flask(__name__)
-ACCESS_TOKEN = 'AUTH_TOKEN'
-# better way to get it into :P
-VERIFY_TOKEN = 'VERIFY_TOKEN'
-# need better way to say it 
+ACCESS_TOKEN = ''
+# need's to be more secure than in code.
+VERIFY_TOKEN = ''
 bot = Bot(ACCESS_TOKEN)
 
-#We will receive messages that Facebook sends our bot at this endpoint 
+
+#ACCESS_TOKEN = os.environ.get('ACCESS_TOKEN')
+#VERIFY_TOKEN = os.environ.get('VERIFY_TOKEN')
+#for latter or env variables after implementing other modules
+#def __init__():
+#    with open('../../passes.json', 'r') as json_file:
+#        data = json.load(json_file)
+#        ACCESS_TOKEN=data['ACCESS_TOKEN']
+#        VERIFY_TOKEN=data['VERIFY_TOKEN']
+
 @app.route("/", methods=['GET', 'POST'])
 def receive_message():
     if request.method == 'GET':
-        """Before allowing people to message your bot, Facebook has implemented a verify token
-        that confirms all requests that your bot receives came from Facebook.""" 
         token_sent = request.args.get("hub.verify_token")
         return verify_fb_token(token_sent)
-    #if the request was not get, it must be POST and we can just proceed with sending a message back to user
     else:
-        # get whatever message a user sent the bot
+        # get message from user
        output = request.get_json()
        for event in output['entry']:
           messaging = event['messaging']
           for message in messaging:
             if message.get('message'):
-                #Facebook Messenger ID for user so we know where to send response back to
+                #Facebook Messenger ID for user 
                 recipient_id = message['sender']['id']
                 if message['message'].get('text'):
                     response_sent_text = get_message()
                     send_message(recipient_id, response_sent_text)
-                #if user sends us a GIF, photo,video, or any other non-text item
+                #send anything for media
                 if message['message'].get('attachments'):
                     response_sent_nontext = get_message()
                     send_message(recipient_id, response_sent_nontext)
@@ -42,8 +49,6 @@ def receive_message():
 
 
 def verify_fb_token(token_sent):
-    #take token sent by facebook and verify it matches the verify token you sent
-    #if they match, allow the request, else return an error 
     if token_sent == VERIFY_TOKEN:
         return request.args.get("hub.challenge")
     return 'Invalid verification token'
@@ -52,7 +57,7 @@ def verify_fb_token(token_sent):
 #chooses a random message to send to the user
 def get_message():
     sample_responses = ["You are stunning!", "We're proud of you.", "Keep on being you!", "We're greatful to know you :)"]
-    # return selected item to the user
+    # return random item to the user
     return random.choice(sample_responses)
 
 #uses PyMessenger to send response to user
@@ -62,4 +67,5 @@ def send_message(recipient_id, response):
     return "success"
 
 if __name__ == "__main__":
-    app.run()
+    __init__()
+    app.run(port=50000)
