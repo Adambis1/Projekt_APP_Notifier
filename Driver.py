@@ -9,6 +9,7 @@ import re, string
 import mysql.connector
 from flask import Flask, request
 from pymessenger.bot import Bot
+from datetime import datetime
 
 app = Flask(__name__)
 ACCESS_TOKEN = ''
@@ -70,47 +71,58 @@ def verify_fb_token(token_sent):
 #supoort for commands
 def get_message(text_from_message, recipient_id):
     if "!help" in text_from_message:
-        return "Aby zobaczyć liste wpisz !Pokaz\nJesli chcesz dokonać wpisu wpisz !Zrob [data - DD-MM-YYYY lub za [liczba] [dni/godziny/minuty]] [co?]"
+        return "Aby zobaczyć liste wpisz !Pokaz\nJesli chcesz dokonać wpisu wpisz \n!Zrob [data - DD.MM.YYYY lub za [liczba] [dni/godziny/minuty]] [co?]"
     if "!" in text_from_message:
-        mysql_client.execute(
-            "SELECT `recipient_id` FROM `users` WHERE `facebook_id`=%s",(recipient_id,)
-        )
+        sql=('SELECT `recipient_id` FROM `users` WHERE `facebook_id`={}'.format(recipient_id))
+        mysql_client.execute(sql)
         # gets the number of rows affected by the command executed
         myresult = mysql_client.fetchone()
         if mysql_client.rowcount == 0:
-            mysql_client.execute(
-                "INSERT INTO `users`(`facebook_id`) VALUES (%s)",(recipient_id,)
-            )
+            sql=('INSERT INTO `users`(`facebook_id`) VALUES ({})'.format(recipient_id))
+            mysql_client.execute()
             mydb.commit()
         else:
             if "!Pokaz" in text_from_message:
-                mysql_client_execute(   
-                    "SELECT `Text`, `data` FROM `todo` WHERE `recipient_id`=%s",(myresult,)
-                )
-                myresult = mysql_client.fetchall()
+                sql=('SELECT `Text`, DATE_FORMAT(`data`, "%d.%m.%Y %T") FROM `todo` WHERE `recipient_id`={} and `data`>SYSDATE() order by DATE_FORMAT(`data`, "%d.%m.%Y") desc'.format(myresult[0]))
+                mysql_client.execute(sql)
+                myresult = list(mysql_client.fetchall())
+                if mysql_client.rowcount == 0:
+                    return "Brak zadan"
+                else:
+                    returnstring=""
+                    for val in myresult:
+                        returnstring=returnstring+val[1]+" "+val[0]+"\n"
+                    return returnstring
             elif "!Zrob" in text_from_message:
-                format_temp=re.search("^!Zrob za +[0-9] dni|godziny|minuty", text_from_message).group()
                 if "!Zrob za" in text_from_message:
+                    format_temp=re.search("^!Zrob za +[0-9] (dni|godzin|minut)", text_from_message).group()
                     text = text_from_message[len(format_temp)+1:]
                     date = re.search("[0-9]+", format_temp).group()
                     type_of = ""
                     if "dni" in format_temp:
                         type_of = 'day'
-                    elif "godziny" in format_temp:
+                    elif "godzin" in format_temp:
                         type_of = "hour"
                     else:
                         type_of = "minute"
                     print(type_of)
-                    #INSERT INTO `todo`(`recipient_id`, `Text`, `data`) VALUES (3,'ja pierdziele',DATE_ADD(SYSDATE(), INTERVAL 5 day))
-                    mysql_client.execute(
-                        """INSERT INTO `todo`(`recipient_id`, `Text`, `data`) VALUES (%s,%s,DATE_ADD(SYSDATE(), INTERVAL %s %s))""",(myresult[0],text,date,type_of)
-                        )
+                    #INSERT INTO `todo`(`recipient_id`, `Text`, `data`) VALUES (3,"jaka",DATE_ADD(SYSDATE(), INTERVAL 3 day))
+                    sql=('INSERT INTO `todo`(`recipient_id`, `Text`, `data`) VALUES ({},"{}",DATE_ADD(SYSDATE(), INTERVAL {} {}))'.format(myresult[0],text,date,type_of))
+                    mysql_client.execute(sql)
                     mydb.commit()
+                    return "Zostało dodane "
                 else:
-
+                    format_temp=re.search("^!Zrob [0-9][0-9].[0-9][0-9].[0-9]+", text_from_message).group()
+                    text = text_from_message[len(format_temp)+1:]
+                    date = re.search("[0-9][0-9].[0-9][0-9].[0-9]+", format_temp).group()
+                    date_formated = datetime.strptime(date+' 08:00:00', '%d.%m.%Y %H:%M:%S')
+                    date_formated = date_formated.strftime('%Y-%m-%d %H:%M:%S')
+                    print('{}'.format(date_formated))
+                    #INSERT INTO `todo`(`recipient_id`, `Text`, `data`) VALUES (3,"{aaaaaaaaaaaaaaa}",'2022-03-28 08:00:00')
+                    sql=('INSERT INTO `todo`(`recipient_id`, `Text`, `data`) VALUES ({},"{}","{}")'.format(myresult[0],text,date_formated))
+                    mysql_client.execute(sql)
                     mydb.commit()
-
-
+                    return "Zostało dodane "
 
 
     #myresult = mysql_client.fetchone()
