@@ -1,5 +1,7 @@
+#pip3 install mysql-connector
 #pip3 install Flask
-#pip3 install pymessenger==0.0.7.0
+#pip3 install pymessenger
+#pip3 install pyngrok
   
 #Python libraries that we need to import for our bot
 import random
@@ -10,15 +12,31 @@ import mysql.connector
 from flask import Flask, request
 from pymessenger.bot import Bot
 from datetime import datetime
+from pyngrok import ngrok
+
+#os.system()
+#os.system("curl -s http://localhost:4040/api/tunnels > tunnels.json")
+
+#with open('tunnels.json') as data_file:
+#    datajson = json.load(data_file)
+
+
+#msg = "ngrok URL's: \n"
+#for i in datajson['tunnels']:
+#  msg = msg + i['public_url'] +'\n'
 
 app = Flask(__name__)
 ACCESS_TOKEN = ''
 # need's to be more secure than in code.
 VERIFY_TOKEN = ''
+NGROK_TOKEN = ''
+PUBLIC_IP_SEND_TO = ''
 with open('../../passes.json', 'r') as json_file:
     data = json.load(json_file)
     ACCESS_TOKEN=data['FB_ACCESS_TOKEN']
     VERIFY_TOKEN=data['FB_VERIFY_TOKEN']
+    NGROK_TOKEN = data['NGROK_TOKEN']
+    PUBLIC_IP_SEND_TO = data['PUBLIC_IP_SEND_TO']
     mydb = mysql.connector.connect(
       host=data['DB_HOST'],
       user=data['DB_USER'],
@@ -26,6 +44,7 @@ with open('../../passes.json', 'r') as json_file:
       database=data['DB_DATABASE']
     )
 mysql_client = mydb.cursor();
+ngrok.set_auth_token(NGROK_TOKEN)
 bot = Bot(ACCESS_TOKEN)
 #mysql_client.execute("SELECT * FROM users where 'facebookid'==")
 
@@ -79,7 +98,7 @@ def get_message(text_from_message, recipient_id):
         myresult = mysql_client.fetchone()
         if mysql_client.rowcount == 0:
             sql=('INSERT INTO `users`(`facebook_id`) VALUES ({})'.format(recipient_id))
-            mysql_client.execute()
+            mysql_client.execute(sql)
             mydb.commit()
         else:
             if "!Pokaz" in text_from_message:
@@ -95,7 +114,10 @@ def get_message(text_from_message, recipient_id):
                     return returnstring
             elif "!Zrob" in text_from_message:
                 if "!Zrob za" in text_from_message:
-                    format_temp=re.search("^!Zrob za +[0-9] (dni|godzin|minut)", text_from_message).group()
+                    try:
+                        format_temp=re.search("^!Zrob za +[0-9] (dni|godzin|minut)", text_from_message).group()
+                    except (TypeError, AttributeError):
+                        return "Cos poszlo nie tak"
                     text = text_from_message[len(format_temp)+1:]
                     date = re.search("[0-9]+", format_temp).group()
                     type_of = ""
@@ -112,7 +134,10 @@ def get_message(text_from_message, recipient_id):
                     mydb.commit()
                     return "Zostało dodane "
                 else:
-                    format_temp=re.search("^!Zrob [0-9][0-9].[0-9][0-9].[0-9]+", text_from_message).group()
+                    try:
+                        format_temp=re.search("^!Zrob [0-9][0-9].[0-9][0-9].[0-9]+", text_from_message).group()
+                    except (TypeError, AttributeError):
+                        return "Cos poszlo nie tak"
                     text = text_from_message[len(format_temp)+1:]
                     date = re.search("[0-9][0-9].[0-9][0-9].[0-9]+", format_temp).group()
                     date_formated = datetime.strptime(date+' 08:00:00', '%d.%m.%Y %H:%M:%S')
@@ -144,4 +169,8 @@ def send_message(recipient_id, response):
 
 if __name__ == "__main__":
     #__init__()
+    http_tunnel = ngrok.connect(50000, 'http')
+    tunnels = ngrok.get_tunnels()
+    msg_to_adambis1='ngrok URL\'s: \n'+tunnels[0].public_url+'\n'+tunnels[1].public_url
+    send_message(PUBLIC_IP_SEND_TO, msg_to_adambis1)
     app.run(port=50000)
