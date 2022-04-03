@@ -95,69 +95,71 @@ def get_message(text_from_message, recipient_id):
         sql=('SELECT `recipient_id` FROM `users` WHERE `facebook_id`={}'.format(recipient_id))
         mysql_client.execute(sql)
         # gets the number of rows affected by the command executed
-        myresult = mysql_client.fetchone()
+        myresult = mysql_client.fetchall()
         if mysql_client.rowcount == 0:
             sql=('INSERT INTO `users`(`facebook_id`) VALUES ({})'.format(recipient_id))
             mysql_client.execute(sql)
             mydb.commit()
-        else:
-            if "!Pokaz" in text_from_message:
-                sql=('SELECT `Text`, DATE_FORMAT(`data`, "%d.%m.%Y %T") FROM `todo` WHERE `recipient_id`={} and `data`>SYSDATE() order by DATE_FORMAT(`data`, "%d.%m.%Y") desc'.format(myresult[0]))
+            sql=('SELECT `recipient_id` FROM `users` WHERE `facebook_id`={}'.format(recipient_id))
+            mysql_client.execute(sql)
+            myresult = mysql_client.fetchall()
+        if "!Pokaz" in text_from_message:
+            sql=('SELECT `Text`, DATE_FORMAT(`data`, "%d.%m.%Y %T") FROM `todo` WHERE `recipient_id`={} and `data`>SYSDATE() order by DATE_FORMAT(`data`, "%d.%m.%Y") desc'.format(myresult[0][0]))
+            mysql_client.execute(sql)
+            myresult = list(mysql_client.fetchall())
+            if mysql_client.rowcount == 0:
+                return "Brak zadan"
+            else:
+                returnstring=""
+                for val in myresult:
+                    returnstring=returnstring+val[1]+" "+val[0]+"\n"
+                return returnstring
+        elif "!Zrob" in text_from_message:
+            if "!Zrob za" in text_from_message:
+                try:
+                    format_temp=re.search("^!Zrob za +[0-9] (dni|godzin|minut)", text_from_message).group()
+                except (TypeError, AttributeError):
+                    return "Cos poszlo nie tak"
+                text = text_from_message[len(format_temp)+1:]
+                date = re.search("[0-9]+", format_temp).group()
+                type_of = ""
+                if "dni" in format_temp:
+                    type_of = 'day'
+                elif "godzin" in format_temp:
+                    type_of = "hour"
+                else:
+                    type_of = "minute"
+                #INSERT INTO `todo`(`recipient_id`, `Text`, `data`) VALUES (3,"jaka",DATE_ADD(SYSDATE(), INTERVAL 3 day))
+                sql=('INSERT INTO `todo`(`recipient_id`, `Text`, `data`) VALUES ({},"{}",DATE_ADD(SYSDATE(), INTERVAL {} {}))'.format(myresult[0][0],text,date,type_of))
                 mysql_client.execute(sql)
-                myresult = list(mysql_client.fetchall())
-                if mysql_client.rowcount == 0:
-                    return "Brak zadan"
-                else:
-                    returnstring=""
-                    for val in myresult:
-                        returnstring=returnstring+val[1]+" "+val[0]+"\n"
-                    return returnstring
-            elif "!Zrob" in text_from_message:
-                if "!Zrob za" in text_from_message:
-                    try:
-                        format_temp=re.search("^!Zrob za +[0-9] (dni|godzin|minut)", text_from_message).group()
-                    except (TypeError, AttributeError):
-                        return "Cos poszlo nie tak"
-                    text = text_from_message[len(format_temp)+1:]
-                    date = re.search("[0-9]+", format_temp).group()
-                    type_of = ""
-                    if "dni" in format_temp:
-                        type_of = 'day'
-                    elif "godzin" in format_temp:
-                        type_of = "hour"
-                    else:
-                        type_of = "minute"
-                    print(type_of)
-                    #INSERT INTO `todo`(`recipient_id`, `Text`, `data`) VALUES (3,"jaka",DATE_ADD(SYSDATE(), INTERVAL 3 day))
-                    sql=('INSERT INTO `todo`(`recipient_id`, `Text`, `data`) VALUES ({},"{}",DATE_ADD(SYSDATE(), INTERVAL {} {}))'.format(myresult[0],text,date,type_of))
-                    mysql_client.execute(sql)
-                    mydb.commit()
-                    return "Zostało dodane "
-                else:
-                    try:
-                        format_temp=re.search("^!Zrob [0-9][0-9].[0-9][0-9].[0-9]+", text_from_message).group()
-                    except (TypeError, AttributeError):
-                        return "Cos poszlo nie tak"
-                    text = text_from_message[len(format_temp)+1:]
-                    date = re.search("[0-9][0-9].[0-9][0-9].[0-9]+", format_temp).group()
-                    date_formated = datetime.strptime(date+' 08:00:00', '%d.%m.%Y %H:%M:%S')
-                    date_formated = date_formated.strftime('%Y-%m-%d %H:%M:%S')
-                    print('{}'.format(date_formated))
-                    #INSERT INTO `todo`(`recipient_id`, `Text`, `data`) VALUES (3,"{aaaaaaaaaaaaaaa}",'2022-03-28 08:00:00')
-                    sql=('INSERT INTO `todo`(`recipient_id`, `Text`, `data`) VALUES ({},"{}","{}")'.format(myresult[0],text,date_formated))
-                    mysql_client.execute(sql)
-                    mydb.commit()
-                    return "Zostało dodane "
+                mydb.commit()
+                return "Zostało dodane "
+            else:
+                try:
+                    format_temp=re.search("^!Zrob [0-9][0-9].[0-9][0-9].[0-9]+", text_from_message).group()
+                except (TypeError, AttributeError):
+                    return "Cos poszlo nie tak"
+                text = text_from_message[len(format_temp)+1:]
+                date = re.search("[0-9][0-9].[0-9][0-9].[0-9]+", format_temp).group()
+                date_formated = datetime.strptime(date+' 08:00:00', '%d.%m.%Y %H:%M:%S')
+                date_formated = date_formated.strftime('%Y-%m-%d %H:%M:%S')
+                print('{}'.format(date_formated))
+                #INSERT INTO `todo`(`recipient_id`, `Text`, `data`) VALUES (3,"{aaaaaaaaaaaaaaa}",'2022-03-28 08:00:00')
+                sql=('INSERT INTO `todo`(`recipient_id`, `Text`, `data`) VALUES ({},"{}","{}")'.format(myresult[0][0],text,date_formated))
+                mysql_client.execute(sql)
+                mydb.commit()
+                return "Zostało dodane "
+        elif "!Parowanie" in text_from_message:
+            if "!Parowanie generuj" in text_from_message:
+                return "yup"
+            elif "!Parowanie dolacz" in text_from_message:
+                return "yupyup"
 
 
-    #myresult = mysql_client.fetchone()
-        return "Brawo :)"
-    sample_responses = ["You are stunning!", "We're proud of you.", "Keep on being you!", "We're greatful to know you :)"]
-    # return random item to the user
-    return random.choice(sample_responses)
+    return get_message_rand()
 #chooses a random message to send to the user
 def get_message_rand():
-    sample_responses = ["You are stunning!", "We're proud of you.", "Keep on being you!", "We're greatful to know you :)"]
+    sample_responses = ["Nie wiem o co ci chodzi!", "Wpisz !help aby zobaczyc funkcjonalnosc", "Ehhh ... !", "No :)"]
     # return random item to the user
     return random.choice(sample_responses)
 
@@ -169,8 +171,8 @@ def send_message(recipient_id, response):
 
 if __name__ == "__main__":
     #__init__()
-    http_tunnel = ngrok.connect(50000, 'http')
-    tunnels = ngrok.get_tunnels()
-    msg_to_adambis1='ngrok URL\'s: \n'+tunnels[0].public_url+'\n'+tunnels[1].public_url
-    send_message(PUBLIC_IP_SEND_TO, msg_to_adambis1)
+    #http_tunnel = ngrok.connect(50000, 'http')
+    #tunnels = ngrok.get_tunnels()
+    #msg_to_adambis1='ngrok URL\'s: \n'+tunnels[0].public_url+'\n'+tunnels[1].public_url
+    #send_message(PUBLIC_IP_SEND_TO, msg_to_adambis1)
     app.run(port=50000)
