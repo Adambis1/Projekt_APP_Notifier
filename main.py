@@ -26,7 +26,7 @@ button2 = KeyboardButton('Set new reminder')
 keyboard_1 = ReplyKeyboardMarkup([[button1, button2]],resize_keyboard=True, one_time_keyboard=True)
 
 def start(update: Update, context: CallbackContext):
-    context.bot.send_message(chat_id=update.effective_chat.id, text="Влад, ты? Фу , иди нахуй",reply_markup=keyboard_1
+    context.bot.send_message(chat_id=update.effective_chat.id, text="Hello! ",reply_markup=keyboard_1
 )
 
 
