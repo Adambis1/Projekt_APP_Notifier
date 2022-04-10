@@ -71,7 +71,7 @@ def rem(update: Update, context: CallbackContext):
         date = parsing_date(input_text)
         print('dodano do bazy')
         output_rem = 'text: ' + str(text_from_str) + '\n' + 'date: ' + str(date) + '\n' + 'id: ' + str(input_id)
-        telegram_send.send(messages=[output_rem])
+        updater.send_message(chat_id = input_id, text=output_rem)
          #  sql = ('INSERT INTO `todo`(`recipient_id`, `Text`, `data`) VALUES ({},"{}","{}")'.format(user_id, text_from_str, date))
     elif re.search(r"(in|za|через)",input_text).group() in input_text:
         try:
@@ -95,9 +95,9 @@ def rem(update: Update, context: CallbackContext):
        # mysql_client.execute(sql)
         #mydb.commit()
         output_rem = 'text: ' + text_from_str + '\n' + 'date: ' + za_jak_dlugo + '\n' + 'id: ' + type_of
-        telegram_send.send(messages=[output_rem])
+        updater.send_message(chat_id = input_id, text=output_rem)
 
-    else: telegram_send.send(messages=['cos poszlo nie tak'])
+    else: updater.send_message(chat_id = input_id, text='COs poszlo nie tak')
 
 
 
