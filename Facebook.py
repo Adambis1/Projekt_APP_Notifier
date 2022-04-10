@@ -117,7 +117,7 @@ def get_message(text_from_message, recipient_id):
         elif "!Zrob" in text_from_message:
             if "!Zrob za" in text_from_message:
                 try:
-                    format_temp=re.search("^!Zrob za +[0-9] (dni|godzin|minut)", text_from_message).group()
+                    format_temp=re.search("^!Zrob za [0-9]+ (dni|godzin|minut)", text_from_message).group()
                 except (TypeError, AttributeError):
                     return "Cos poszlo nie tak"
                 text = text_from_message[len(format_temp)+1:]
@@ -151,9 +151,71 @@ def get_message(text_from_message, recipient_id):
                 return "Zostało dodane "
         elif "!Parowanie" in text_from_message:
             if "!Parowanie generuj" in text_from_message:
-                return "yup"
+                kod=random.randint(100,999)
+                user=myresult[0][0]
+                #check if already not parred
+                sql=('SELECT CASE WHEN EXISTS (SELECT * FROM `users` WHERE `facebook_id` is not null and `telegram_id` is not null and `facebook_id`={}) THEN "True" ELSE "False" END'.format(recipient_id))
+                mysql_client.execute(sql)
+                myresult = mysql_client.fetchall()
+                if myresult[0][0]=="True":
+                    return "Konto zparowane"
+                sql=('DELETE FROM `parowanie` WHERE `recipient_id`={}'.format(user))
+                mysql_client.execute(sql)
+                mydb.commit()
+                while True:
+                    kod=random.randint(100,999)
+                    sql=('SELECT `kod` FROM `parowanie` WHERE `kod`={}'.format(kod))
+                    mysql_client.execute(sql)
+                    myresult = mysql_client.fetchall()
+                    if mysql_client.rowcount == 0:
+                        break
+                sql=('INSERT INTO `parowanie`(`recipient_id`, `date`, `kod`) VALUES ({},DATE_ADD(SYSDATE(), INTERVAL 30 minute),{})'.format(user,kod))
+                mysql_client.execute(sql)
+                mydb.commit()
+                return "Generowany kod to: {}".format(kod)
             elif "!Parowanie dolacz" in text_from_message:
-                return "yupyup"
+                user_now=myresult[0][0] #fb user
+                #check if already not parred
+                sql=('SELECT CASE WHEN EXISTS (SELECT * FROM `users` WHERE `facebook_id` is not null and `telegram_id` is not null and `facebook_id`={}) THEN "True" ELSE "False" END'.format(recipient_id))
+                mysql_client.execute(sql)
+                myresult = mysql_client.fetchall()
+                if myresult[0][0]=="True":
+                    return "Konto zparowane"
+                #getting the code
+                kod = re.search(r"[0-9]+", text_from_message)
+                if kod:
+                    sql=('SELECT `recipient_id`, `date` FROM `parowanie` WHERE `kod`={}'.format(kod.group()))
+                    mysql_client.execute(sql)
+                    myresult = mysql_client.fetchall()
+                    if mysql_client.rowcount == 0:
+                        return "Nie znalezono takiego kodu"
+                    user_parring=myresult[0][0]
+                    future = myresult[0][1]
+                    present = datetime.now()
+                    if present>=future:
+                        sql=('DELETE FROM `parowanie` WHERE `recipient_id`={}'.format(user_parring))
+                        mysql_client.execute(sql)
+                        mydb.commit()
+                        return "Kod wygasl"
+                    sql=('UPDATE `ToDo` SET `recipient_id`={} WHERE `recipient_id`={}'.format(user_now, user_parring))
+                    mysql_client.execute(sql)
+                    mydb.commit()
+                    sql=('SELECT `telegram_id` from `Users` where `recipient_id`={}'.format(user_parring))
+                    mysql_client.execute(sql)
+                    myresult = mysql_client.fetchall()
+                    sql=('UPDATE `Users` SET `telegram_id` = {} WHERE `recipient_id`={}'.format(myresult[0][0],user_now))
+                    mysql_client.execute(sql)
+                    mydb.commit()
+                    sql=('DELETE FROM `parowanie` WHERE `recipient_id`={} or `recipient_id`={}'.format(user_now,user_parring))
+                    mysql_client.execute(sql)
+                    mydb.commit()
+                    sql=('DELETE from `Users` WHERE `recipient_id`={}'.format(user_parring))
+                    mysql_client.execute(sql)
+                    mydb.commit()
+                    return "Konta polaczone"
+                else:
+                    return get_message_rand()
+                    
 
 
     return get_message_rand()

@@ -5,7 +5,6 @@ from telegram.ext import *
 from telegram import *
 #from telebot import *
 from telegram.utils.helpers import escape_markdown
-import telegram_send
 import logging
 import math
 import datetime
@@ -69,11 +68,10 @@ def rem(update: Update, context: CallbackContext):
     
     if parsing_date(input_text):
         date = parsing_date(input_text)
-        print('dodano do bazy')
         output_rem = 'text: ' + str(text_from_str) + '\n' + 'date: ' + str(date) + '\n' + 'id: ' + str(input_id)
+        sql = ('INSERT INTO `todo`(`recipient_id`, `Text`, `data`) VALUES ({},"{}","{}")'.format(user_id, text_from_str, date))
         updater.send_message(chat_id = input_id, text=output_rem)
-         #  sql = ('INSERT INTO `todo`(`recipient_id`, `Text`, `data`) VALUES ({},"{}","{}")'.format(user_id, text_from_str, date))
-    elif re.search(r"(in|za|через)",input_text).group() in input_text:
+    elif re.search(r"(in|za|через)",input_text):
         try:
             format_temp = re.search(r"(in|za|через) [0-9]+ ((dni|day|дня)|(godzin|hour|часа)|(minut|minute|минуты))", input_text)
         except (TypeError, AttributeError):
@@ -96,7 +94,10 @@ def rem(update: Update, context: CallbackContext):
         #mydb.commit()
         output_rem = 'text: ' + text_from_str + '\n' + 'date: ' + za_jak_dlugo + '\n' + 'id: ' + type_of
         updater.send_message(chat_id = input_id, text=output_rem)
-
+    elif re.search(r"(Polacz|Connect|Подключи)",input_text):
+        return 0
+    elif re.search(r"Generuj kod|Generate code|Сгенерируй код",input_text):
+        return 0
     else: updater.send_message(chat_id = input_id, text='COs poszlo nie tak')
 
 
