@@ -12,8 +12,26 @@ import datetime
 from datetime import datetime
 import time
 import re
+import random
 import json
 import mysql.connector
+from telegram.ext import Updater
+
+ACCESS_TOKEN = ""
+with open('../../passes.json', 'r') as json_file:
+    data = json.load(json_file)
+    ACCESS_TOKEN=data['TELEGRAM_TOKEN']
+    NGROK_TOKEN = data['NGROK_TOKEN']
+    PUBLIC_IP_SEND_TO = data['PUBLIC_IP_SEND_TO']
+    mydb = mysql.connector.connect(
+        host=data['DB_HOST'],
+        user=data['DB_USER'],
+        password=data['DB_PASSWORD'],
+        database=data['DB_DATABASE']
+    )
+mysql_client = mydb.cursor();
+updater = Updater(ACCESS_TOKEN)
+dispatcher = updater.dispatcher
 
 #needs itegration and changing code bc no one other than coder can message it and get apprioret
 #{'update_id': 65572448, 'message': {'chat': {'first_name': 'Kyrylo', 'type': 'private', 'id': 371968951, 'username': 'ocbtube'}, 'delete_chat_photo': False, 'message_id': 3, 'photo': [], 'supergroup_chat_created': False, 'text': 'привет', 'entities': [], 'new_chat_photo': [], 'caption_entities': [], 'date': 1647697981, 'new_chat_members': [], 'group_chat_created': False, 'channel_chat_created': False, 'from': {'id': 371968951, 'is_bot': False, 'username': 'ocbtube', 'language_code': 'ru', 'first_name': 'Kyrylo'}}}    
@@ -62,24 +80,24 @@ def parsing_text(text):
     return x
 
 def test(update: Update, context: CallbackContext):
-    message_back=operations(Update, CallbackContext)
+    message_back=operations(update, context)
     input_id = update.message.chat.id
-    updater.send_message(chat_id = input_id, text=output_rem)
+    updater.bot.send_message(chat_id = input_id, text=message_back)
 
 def operations(update: Update, context: CallbackContext):
     input_text = update.message.text
     input_date = update.message.date
-    input_id = update.message.chat.id
+    recipient_id = update.message.chat.id
     text_from_message=parsing_text(input_text)
-    sql=('SELECT `recipient_id` FROM `users` WHERE `facebook_id`={}'.format(recipient_id))
+    sql=('SELECT `recipient_id` FROM `users` WHERE `telegram_id`={}'.format(recipient_id))
     mysql_client.execute(sql)
     # gets the number of rows affected by the command executed
     myresult = mysql_client.fetchall()
     if mysql_client.rowcount == 0:
-        sql=('INSERT INTO `users`(`facebook_id`) VALUES ({})'.format(recipient_id))
+        sql=('INSERT INTO `users`(`telegram_id`) VALUES ({})'.format(recipient_id))
         mysql_client.execute(sql)
         mydb.commit()
-        sql=('SELECT `recipient_id` FROM `users` WHERE `facebook_id`={}'.format(recipient_id))
+        sql=('SELECT `recipient_id` FROM `users` WHERE `telegram_id`={}'.format(recipient_id))
         mysql_client.execute(sql)
         myresult = mysql_client.fetchall()
     if re.search(r"(Pokaz|Show|placeholdershow)",text_from_message):
@@ -96,7 +114,7 @@ def operations(update: Update, context: CallbackContext):
     elif parsing_date(input_text):
         date = parsing_date(input_text)
         output_rem = 'text: ' + str(text_from_str) + '\n' + 'date: ' + str(date) + '\n' + 'id: ' + str(input_id)
-        sql=('INSERT INTO `todo`(`facebook_id`, `Text`, `data`) VALUES ({},"{}","{}")'.format(myresult[0][0],text,date_formated))
+        sql=('INSERT INTO `todo`(`recipient_id`, `Text`, `data`) VALUES ({},"{}","{}")'.format(myresult[0][0],text,date_formated))
         mysql_client.execute(sql)
         mydb.commit()
         return "Zostal dodane"
@@ -118,7 +136,7 @@ def operations(update: Update, context: CallbackContext):
         else:
             type_of = "minute"
         parsing_text(input_text)
-        sql=('INSERT INTO `todo`(`recipient_id`, `Text`, `data`) VALUES ({},"{}",DATE_ADD(SYSDATE(), INTERVAL {} {}))'.format(myresult[0][0],text_from_message,date,type_of))
+        sql=('INSERT INTO `todo`(`recipient_id`, `Text`, `data`) VALUES ({},"{}",DATE_ADD(SYSDATE(), INTERVAL {} {}))'.format(myresult[0][0],text_from_message,za_jak_dlugo,type_of))
         mysql_client.execute(sql)
         mydb.commit()
         return "Zostało dodane"
@@ -127,7 +145,7 @@ def operations(update: Update, context: CallbackContext):
         kod=random.randint(100,999)
         user=myresult[0][0]
         #check if already not parred
-        sql=('SELECT CASE WHEN EXISTS (SELECT * FROM `users` WHERE `facebook_id` is not null and `facebook_id` is not null and `facebook_id`={}) THEN "True" ELSE "False" END'.format(recipient_id))
+        sql=('SELECT CASE WHEN EXISTS (SELECT * FROM `users` WHERE `facebook_id` is not null and `telegram_id` is not null and `telegram_id`={}) THEN "True" ELSE "False" END'.format(recipient_id))
         mysql_client.execute(sql)
         myresult = mysql_client.fetchall()
         if myresult[0][0]=="True":
@@ -232,9 +250,9 @@ def rem(update: Update, context: CallbackContext):
        # mysql_client.execute(sql)
         #mydb.commit()
         output_rem = 'text: ' + text_from_str + '\n' + 'date: ' + za_jak_dlugo + '\n' + 'id: ' + type_of
-        updater.send_message(chat_id = input_id, text=output_rem)
+        updater.bot.send_message(chat_id = input_id, text=output_rem)
 
-    else: updater.send_message(chat_id = input_id, text='COs poszlo nie tak')
+    else: updater.bot.send_message(chat_id = input_id, text='COs poszlo nie tak')
 
 
 
@@ -251,26 +269,12 @@ def rem(update: Update, context: CallbackContext):
 
 def main() -> None:
     # Create the Updater and pass it your bot's token.
-    ACCESS_TOKEN = ""
-    with open('../../passes.json', 'r') as json_file:
-        data = json.load(json_file)
-        ACCESS_TOKEN=data['TELEGRAM_TOKEN']
-        NGROK_TOKEN = data['NGROK_TOKEN']
-        PUBLIC_IP_SEND_TO = data['PUBLIC_IP_SEND_TO']
-        mydb = mysql.connector.connect(
-          host=data['DB_HOST'],
-          user=data['DB_USER'],
-          password=data['DB_PASSWORD'],
-          database=data['DB_DATABASE']
-        )
-    updater = Updater(ACCESS_TOKEN)
-    dispatcher = updater.dispatcher
 
     # on different commands - answer in Telegram
     dispatcher.add_handler(CommandHandler("start", start))
   #  dispatcher.add_handler(CommandHandler("learn", learn))
     dispatcher.add_handler(CommandHandler("rem", rem))
-    #dispatcher.add_handler(CommandHandler("operations", test))
+    dispatcher.add_handler(CommandHandler("operations", test))
     updater.start_polling()
 
     updater.idle()

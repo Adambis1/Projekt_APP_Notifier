@@ -111,7 +111,7 @@ def verify_fb_token(token_sent):
 def get_message(text_from_message, recipient_id):
     if "help" in text_from_message:
         return "Aby zobaczyć liste wpisz !Pokaz\nJesli chcesz dokonać wpisu wpisz \n!Zrob [data - DD.MM.YYYY lub za [liczba] [dni/godziny/minuty]] [co?]"
-    if "!" in text_from_message:
+    if "/" in text_from_message:
         sql=('SELECT `recipient_id` FROM `users` WHERE `facebook_id`={}'.format(recipient_id))
         mysql_client.execute(sql)
         # gets the number of rows affected by the command executed
@@ -123,7 +123,7 @@ def get_message(text_from_message, recipient_id):
             sql=('SELECT `recipient_id` FROM `users` WHERE `facebook_id`={}'.format(recipient_id))
             mysql_client.execute(sql)
             myresult = mysql_client.fetchall()
-        if "!Pokaz" in text_from_message:
+        if "/Pokaz" in text_from_message:
             sql=('SELECT `Text`, DATE_FORMAT(`data`, "%d.%m.%Y %T") FROM `todo` WHERE `recipient_id`={} and `data`>SYSDATE() order by DATE_FORMAT(`data`, "%d.%m.%Y") desc'.format(myresult[0][0]))
             mysql_client.execute(sql)
             myresult = list(mysql_client.fetchall())
@@ -134,16 +134,16 @@ def get_message(text_from_message, recipient_id):
                 for val in myresult:
                     returnstring=returnstring+val[1]+" "+val[0]+"\n"
                 return returnstring
-        elif "!Zrob" in text_from_message:
-            if "!Zrob za" in text_from_message:
+        elif "/Zrob" in text_from_message:
+            if "/Zrob za" in text_from_message:
                 try:
-                    format_temp=re.search("^!Zrob za [0-9]+ (dni|godzin|minut)", text_from_message).group()
+                    format_temp=re.search("^/Zrob za [0-9]+ (dni|godzin|minut)", text_from_message).group()
                 except (TypeError, AttributeError):
                     return "Cos poszlo nie tak"
                 text = text_from_message[len(format_temp)+1:]
                 date = re.search("[0-9]+", format_temp).group()
                 type_of = ""
-                if "dni|day|дня" in format_temp:
+                if "dni" in format_temp:
                     type_of = 'day'
                 elif "godzin" in format_temp:
                     type_of = "hour"
@@ -156,7 +156,7 @@ def get_message(text_from_message, recipient_id):
                 return "Zostało dodane "
             else:
                 try:
-                    format_temp=re.search("^!Zrob [0-9][0-9].[0-9][0-9].[0-9]+", text_from_message).group()
+                    format_temp=re.search("^/Zrob [0-9][0-9].[0-9][0-9].[0-9]+", text_from_message).group()
                 except (TypeError, AttributeError):
                     return "Cos poszlo nie tak"
                 text = text_from_message[len(format_temp)+1:]
@@ -169,7 +169,7 @@ def get_message(text_from_message, recipient_id):
                 mysql_client.execute(sql)
                 mydb.commit()
                 return "Zostało dodane "
-        elif re.search(r"(Generuj kod|Generate code|Сгенерируй код)",input_text):
+        elif re.search(r"(/Generuj kod|/Generate code|/Сгенерируй код)",text_from_message):
             kod=random.randint(100,999)
             user=myresult[0][0]
             #check if already not parred
@@ -192,7 +192,7 @@ def get_message(text_from_message, recipient_id):
             mysql_client.execute(sql)
             mydb.commit()
             return "Generowany kod to: {}".format(kod)
-        elif re.search(r"(Polacz|Connect|Подключи)",input_text):
+        elif re.search(r"(/Polacz|/Connect|/Подключи)",text_from_message):
             user_now=myresult[0][0] #fb user
             #check if already not parred
             sql=('SELECT CASE WHEN EXISTS (SELECT * FROM `users` WHERE `facebook_id` is not null and `telegram_id` is not null and `facebook_id`={}) THEN "True" ELSE "False" END'.format(recipient_id))
