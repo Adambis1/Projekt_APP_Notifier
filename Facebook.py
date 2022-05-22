@@ -123,6 +123,7 @@ def get_message(text_from_message, recipient_id):
             sql=('SELECT `recipient_id` FROM `users` WHERE `facebook_id`={}'.format(recipient_id))
             mysql_client.execute(sql)
             myresult = mysql_client.fetchall()
+        #/Pokaz|/
         if "/Pokaz" in text_from_message:
             sql=('SELECT `Text`, DATE_FORMAT(`data`, "%d.%m.%Y %T") FROM `todo` WHERE `recipient_id`={} and `data`>SYSDATE() order by DATE_FORMAT(`data`, "%d.%m.%Y") desc'.format(myresult[0][0]))
             mysql_client.execute(sql)
