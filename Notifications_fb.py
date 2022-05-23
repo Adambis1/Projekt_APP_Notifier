@@ -44,14 +44,14 @@ bot = Bot(ACCESS_TOKEN)
 
 
 def send_schedule(recipient_id):
-    sql= 'SELECT `Text`, DATE_FORMAT(`data`, "%d.%m.%Y %T") FROM `todo`'
+    sql= 'SELECT `Text`, DATE_FORMAT(`data`, "%d.%m.%Y %T") FROM `todo` '
     sql+= 'WHERE `recipient_id`={} AND DATE(sysdate()) = DATE(`data`) ORDER BY DATE_FORMAT(`data`, "%d.%m.%Y") DESC'.format(recipient_id[0])
     mysql_client.execute(sql)
     myresult = list(mysql_client.fetchall())
     if mysql_client.rowcount == 0:
         result = "Brak zadan"
     else:
-        returnstring=""
+        returnstring = "Powiadomienie\n"
         for val in myresult:
             returnstring=returnstring+val[1]+" "+val[0]+"\n"
         result = returnstring
@@ -64,7 +64,8 @@ def send_schedule(recipient_id):
         send_message(fb_id, result)
 
 def send_schedule_to_all():
-    sql= 'SELECT DISTINCT `recipient_id` FROM `todo` T NATURAL JOIN `users` U'
+    print("Facebook Notify Sending {}".format(datetime.now()))
+    sql= 'SELECT DISTINCT `recipient_id` FROM `todo` T NATURAL JOIN `users` U '
     sql+= 'WHERE DATE(sysdate()) = DATE(`data`) AND U.facebook_id ORDER BY DATE_FORMAT(`data`, "%d.%m.%Y") DESC'
     #wybieranie tych użytkowników, którzy mają dziś cokolwiek w planie.
     mysql_client.execute(sql)
@@ -81,7 +82,8 @@ def send_message(recipient_id, response):
 schedule.every(5).minutes.do(send_schedule_to_all)
 
 if __name__ == "__main__":
-    #send_schedule_to_all()
+    send_schedule_to_all()
+    print("Facebook Notify {}".format(datetime.now()))
     while True:
         schedule.run_pending()
         time.sleep(1)
