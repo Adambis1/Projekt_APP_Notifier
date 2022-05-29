@@ -110,7 +110,7 @@ def verify_fb_token(token_sent):
 #supoort for commands
 def get_message(text_from_message, recipient_id):
     if "help" in text_from_message:
-        return "Aby zobaczyć liste wpisz !Pokaz\nJesli chcesz dokonać wpisu wpisz \n!Zrob [data - DD.MM.YYYY lub za [liczba] [dni/godziny/minuty]] [co?]"
+        return "Aby zobaczyć liste wpisz\n /Pokaz\nJesli chcesz dokonać wpisu wpisz /Zrob \n [data - DD.MM.YYYY lub\n za [liczba] [dni/godziny/minuty]] [co?]"
     if "/" in text_from_message:
         sql=('SELECT `recipient_id` FROM `users` WHERE `facebook_id`={}'.format(recipient_id))
         mysql_client.execute(sql)
@@ -241,7 +241,7 @@ def get_message(text_from_message, recipient_id):
     return get_message_rand()
 #chooses a random message to send to the user
 def get_message_rand():
-    sample_responses = ["Nie wiem o co ci chodzi!", "Wpisz !help aby zobaczyc funkcjonalnosc", "Ehhh ... !", "No :)"]
+    sample_responses = ["Nie wiem o co ci chodzi!", "Wpisz /help aby zobaczyc funkcjonalnosc", "Ehhh ... !", "No :)"]
     # return random item to the user
     return random.choice(sample_responses)
 
